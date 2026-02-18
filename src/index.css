@@ -9,6 +9,48 @@
     color-scheme: dark;
   }
   body {
-    @apply bg-kryv-bg-dark text-kryv-text-primary;
+    @apply bg-kryv-bg-dark text-kryv-text-primary overflow-hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+  
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-kryv-border rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-kryv-text-secondary;
+  }
+
+  /* Custom Selection */
+  ::selection {
+    @apply bg-kryv-cyan/20 text-kryv-cyan;
+  }
+}
+
+/* CMDK Command Palette Styling */
+[cmdk-dialog] {
+  @apply bg-kryv-panel-dark border border-kryv-border rounded-lg;
+}
+[cmdk-input] {
+  @apply bg-transparent w-full text-lg text-kryv-text-primary placeholder:text-kryv-text-secondary focus:outline-none px-4 pt-4;
+}
+[cmdk-list] {
+  @apply p-2 max-h-[300px] overflow-auto;
+}
+[cmdk-item] {
+  @apply p-2 rounded-md flex items-center gap-2 cursor-pointer text-kryv-text-secondary;
+}
+[cmdk-item][aria-selected="true"] {
+  @apply bg-kryv-cyan/10 text-kryv-text-primary;
+}
+[cmdk-group-heading] {
+  @apply px-2 py-1 text-xs text-kryv-text-secondary;
 }
