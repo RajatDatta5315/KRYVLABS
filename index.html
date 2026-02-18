@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRYV LABS | OS-1 Interface</title>
+    <title>KRYV LABS | OS-1 LIVE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -11,62 +11,116 @@
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
     <style>
         :root { --accent: #06b6d4; --bg: #050505; }
-        body { background-color: var(--bg); color: white; font-family: 'Space Grotesk', sans-serif; margin: 0; overflow: hidden; }
+        body { background: var(--bg); color: white; font-family: 'Space Grotesk', sans-serif; overflow: hidden; }
         .mono { font-family: 'JetBrains Mono', monospace; }
-        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.08); }
-        .scanline { width: 100%; height: 2px; background: rgba(6, 182, 212, 0.1); position: absolute; animation: scan 4s linear infinite; pointer-events: none; z-index: 50; }
-        @keyframes scan { from { top: 0; } to { top: 100%; } }
-        .grid-bg { background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 50px 50px; }
-        .glow-btn:hover { box-shadow: 0 0 20px rgba(6, 182, 212, 0.4); border-color: var(--accent); }
+        .glass { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(12px); }
+        .agent-card:hover { border-color: var(--accent); box-shadow: 0 0 20px rgba(6,182,212,0.15); }
+        .scroll-hide::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="grid-bg">
-    <div class="scanline"></div>
+<body>
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        const Dashboard = ({ user }) => {
-            const [agents] = useState([
-                { id: 'KR-01', name: 'NEURAL_LINK_V1', status: 'ACTIVE', load: 64 },
-                { id: 'KR-02', name: 'SENTINEL_DRIVE', status: 'SYNCING', load: 89 },
-                { id: 'KR-03', name: 'VOID_RUNTIME', status: 'IDLE', load: 12 }
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [agents, setAgents] = useState([
+                { id: 1, name: 'KRYV_CORE_01', status: 'online', load: 45 },
+                { id: 2, name: 'SENTINEL_X', status: 'online', load: 12 }
+            ]);
+            const [logs, setLogs] = useState([
+                { time: '12:00:01', msg: 'System initialized' },
+                { time: '12:00:05', msg: 'Neural handshake stable' }
             ]);
 
+            const addLog = (msg) => {
+                const time = new Date().toLocaleTimeString();
+                setLogs(prev => [{ time, msg }, ...prev.slice(0, 15)]);
+            };
+
+            const handleDeploy = () => {
+                const names = ['VOID_WALKER', 'PHANTOM_OS', 'CHRONOS_NODE', 'AXION_UNIT'];
+                const newAgent = {
+                    id: Date.now(),
+                    name: names[Math.floor(Math.random() * names.length)],
+                    status: 'online',
+                    load: 0
+                };
+                setAgents(prev => [newAgent, ...prev]);
+                addLog(`Deploying ${newAgent.name}...`);
+                
+                // Simulate neural load increase
+                setTimeout(() => {
+                    setAgents(prev => prev.map(a => a.id === newAgent.id ? {...a, load: 34} : a));
+                    addLog(`${newAgent.name} synchronization complete.`);
+                }, 1500);
+            };
+
+            if (!user) return (
+                <div className="h-screen flex items-center justify-center p-6 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-cyan-950/20 via-black to-black">
+                    <div className="glass p-12 rounded-[2rem] w-full max-w-md text-center border-t-4 border-t-cyan-500">
+                        <h1 className="text-4xl font-bold mb-2 tracking-tighter">KRYV <span className="text-cyan-500">LABS</span></h1>
+                        <p className="text-zinc-500 text-[10px] mono mb-10 tracking-[0.3em] uppercase">Humanoid OS Interface</p>
+                        <button 
+                            onClick={() => setUser('ADMIN')}
+                            className="group relative w-full py-4 bg-white text-black font-bold rounded-xl overflow-hidden transition-all hover:bg-cyan-500"
+                        >
+                            <span className="relative z-10 uppercase tracking-widest text-sm">Initiate Neural Link</span>
+                        </button>
+                    </div>
+                </div>
+            );
+
             return (
-                <div className="h-screen flex flex-col p-6 overflow-hidden">
-                    <header className="flex justify-between items-center mb-8 glass p-4 rounded-xl">
-                        <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-cyan-500 rounded flex items-center justify-center font-bold text-black">K</div>
-                            <div>
-                                <h1 className="text-xl font-bold tracking-tighter uppercase">KRYV <span className="text-cyan-500">Command</span></h1>
-                                <p className="text-[10px] mono text-zinc-500 uppercase">Lat: 34.0522 / Lon: -118.2437</p>
+                <div className="h-screen flex flex-col p-8 lg:p-12 overflow-hidden gap-8">
+                    {/* Header */}
+                    <header className="flex justify-between items-end">
+                        <div>
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-cyan-500 rounded flex items-center justify-center text-black font-bold">K</div>
+                                <h1 className="text-2xl font-bold tracking-tighter uppercase font-heading">Fleet <span className="text-cyan-500">Command</span></h1>
                             </div>
+                            <p className="text-zinc-500 mono text-xs mt-1">OPERATOR: {user} // STATUS: CONNECTED</p>
                         </div>
-                        <div className="text-right">
-                            <p className="text-xs mono text-cyan-500">NODE_AUTH: SUCCESS</p>
-                            <p className="text-[10px] mono text-zinc-500 uppercase">Operator: {user.split('@')[0]}</p>
-                        </div>
+                        <button 
+                            onClick={handleDeploy}
+                            className="px-8 py-3 bg-cyan-500 text-black font-bold rounded-full hover:bg-white transition-all text-xs tracking-widest uppercase shadow-[0_0_20px_rgba(6,182,212,0.3)]"
+                        >
+                            + Deploy New Unit
+                        </button>
                     </header>
 
-                    <main className="flex-1 grid grid-cols-12 gap-6 overflow-hidden">
-                        <div className="col-span-8 space-y-6 overflow-y-auto pr-2">
-                            <div className="grid grid-cols-2 gap-4">
+                    {/* Dashboard Body */}
+                    <div className="flex-1 grid grid-cols-12 gap-8 overflow-hidden">
+                        {/* Agent Fleet */}
+                        <div className="col-span-8 flex flex-col gap-6 overflow-hidden">
+                            <h2 className="text-xs mono text-zinc-500 uppercase tracking-widest border-b border-white/5 pb-2">Active Neural Assets ({agents.length})</h2>
+                            <div className="grid grid-cols-2 gap-4 overflow-y-auto pr-4 scroll-hide pb-20">
                                 {agents.map(agent => (
-                                    <div key={agent.id} className="glass p-6 rounded-2xl hover:bg-white/5 transition-all group">
-                                        <div className="flex justify-between mb-4">
-                                            <span className="text-[10px] mono p-1 px-2 border border-white/10 rounded uppercase">{agent.id}</span>
-                                            <span className={`text-[10px] mono ${agent.status === 'ACTIVE' ? 'text-emerald-400' : 'text-cyan-400'}`}>● {agent.status}</span>
-                                        </div>
-                                        <h3 className="text-lg font-bold mb-4 tracking-tight">{agent.name}</h3>
-                                        <div className="space-y-2">
-                                            <div className="flex justify-between text-[10px] mono text-zinc-400">
-                                                <span>NEURAL_LOAD</span>
-                                                <span>{agent.load}%</span>
+                                    <div key={agent.id} className="glass p-6 rounded-2xl agent-card transition-all flex flex-col justify-between h-48 group">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <h3 className="text-lg font-bold group-hover:text-cyan-400 transition-colors uppercase">{agent.name}</h3>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]"></span>
+                                                    <span className="text-[10px] mono text-emerald-500 uppercase">{agent.status}</span>
+                                                </div>
                                             </div>
-                                            <div className="h-1 bg-white/10 rounded-full overflow-hidden">
-                                                <div className="h-full bg-cyan-500 shadow-[0_0_10px_#06b6d4]" style={{width: `${agent.load}%`}}></div>
+                                            <span className="text-[10px] mono text-zinc-600">ID: {agent.id.toString().slice(-4)}</span>
+                                        </div>
+                                        
+                                        <div className="space-y-3">
+                                            <div className="flex justify-between items-end text-[10px] mono">
+                                                <span className="text-zinc-500 uppercase">Neural Load</span>
+                                                <span className="text-cyan-500 font-bold">{agent.load}%</span>
+                                            </div>
+                                            <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                                                <div 
+                                                    className="h-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)] transition-all duration-1000"
+                                                    style={{ width: `${agent.load}%` }}
+                                                ></div>
                                             </div>
                                         </div>
                                     </div>
@@ -74,56 +128,22 @@
                             </div>
                         </div>
 
-                        <aside className="col-span-4 glass rounded-2xl p-6 flex flex-col">
-                            <h2 className="text-sm font-bold mono uppercase mb-4 border-b border-white/10 pb-2">Real-time Logs</h2>
-                            <div className="flex-1 mono text-[11px] space-y-3 text-zinc-400 overflow-y-auto">
-                                <p><span className="text-zinc-600">[08:22:11]</span> Handshake protocol initiated...</p>
-                                <p><span className="text-zinc-600">[08:22:12]</span> <span className="text-emerald-500">Neural bridge established.</span></p>
-                                <p><span className="text-zinc-600">[08:23:44]</span> Fetching telemetry from KR-01</p>
-                                <p><span className="text-zinc-600">[08:24:01]</span> <span className="text-cyan-500 underline">Syncing humanoid_config.bin</span></p>
-                                <p className="animate-pulse">_</p>
+                        {/* Console */}
+                        <aside className="col-span-4 flex flex-col gap-6 overflow-hidden">
+                            <h2 className="text-xs mono text-zinc-500 uppercase tracking-widest border-b border-white/5 pb-2">System Telemetry</h2>
+                            <div className="flex-1 glass rounded-2xl p-6 font-mono text-[11px] overflow-hidden flex flex-col">
+                                <div className="flex-1 overflow-y-auto scroll-hide space-y-4 pr-2">
+                                    {logs.map((log, i) => (
+                                        <div key={i} className="flex gap-4 border-b border-white/5 pb-4 last:border-0">
+                                            <span className="text-zinc-600">[{log.time}]</span>
+                                            <span className={`${log.msg.includes('complete') ? 'text-emerald-500' : 'text-zinc-300'}`}>{log.msg}</span>
+                                        </div>
+                                    ))}
+                                    <div className="animate-pulse text-cyan-500">_ ACCESSING_DATABASE...</div>
+                                </div>
                             </div>
-                            <button className="mt-6 w-full py-4 bg-cyan-500 text-black font-bold rounded-xl glow-btn transition-all">
-                                DEPLOY NEW UNIT
-                            </button>
                         </aside>
-                    </main>
-                </div>
-            );
-        };
-
-        const Auth = ({ onLogin }) => {
-            const [val, setVal] = useState('');
-            return (
-                <div className="h-screen flex items-center justify-center p-6">
-                    <div className="glass p-10 rounded-3xl w-full max-w-md text-center">
-                        <div className="w-16 h-16 bg-white rounded-2xl mx-auto mb-6 flex items-center justify-center">
-                            <div className="w-8 h-8 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
-                        </div>
-                        <h1 className="text-3xl font-bold mb-2 tracking-tighter">KRYV <span className="text-cyan-500">OS-1</span></h1>
-                        <p className="text-zinc-500 text-xs mono mb-8 uppercase tracking-widest">Neural Access Terminal</p>
-                        <input 
-                            type="text" 
-                            placeholder="OPERATOR_IDENTITY"
-                            className="w-full bg-white/5 border border-white/10 p-4 rounded-xl mb-4 focus:border-cyan-500 outline-none text-center mono uppercase"
-                            onChange={e => setVal(e.target.value)}
-                        />
-                        <button 
-                            onClick={() => onLogin(val || 'GUEST_OPS')}
-                            className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-cyan-500 transition-all uppercase tracking-widest text-sm"
-                        >
-                            Authorize Access
-                        </button>
                     </div>
-                </div>
-            );
-        };
-
-        const App = () => {
-            const [user, setUser] = useState(null);
-            return (
-                <div className="relative z-10">
-                    {!user ? <Auth onLogin={setUser} /> : <Dashboard user={user} />}
                 </div>
             );
         };
