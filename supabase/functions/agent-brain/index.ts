@@ -1,30 +1,81 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { OpenAI } from "https://esm.sh/openai@4.29.2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 serve(async (req) => {
-  const { taskId, agentId, instruction } = await req.json()
-  
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  )
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
 
-  // 1. Update Agent Status
-  await supabase.from('agents').update({ status: 'executing', current_task: instruction }).eq('id', agentId)
+  try {
+    const { taskId } = await req.json();
+    if (!taskId) throw new Error("Task ID is required.");
 
-  // 2. Simulate Task Execution (e.g., Code Generation, Data Analysis, Robotic Command)
-  console.log(`Executing: ${instruction} for agent ${agentId}`)
-  
-  // Here you would call an LLM: const response = await openai.chat.completions.create(...)
-  
-  // 3. Complete Task
-  await supabase.from('tasks').update({ 
-    status: 'completed', 
-    progress: 100,
-    result: `Task executed successfully: ${instruction}` 
-  }).eq('id', taskId)
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
 
-  await supabase.from('agents').update({ status: 'idle', current_task: null }).eq('id', agentId)
+    // 1. Fetch Task and Agent details
+    const { data: task, error: taskError } = await supabaseAdmin
+      .from("tasks")
+      .select("*, agents(*)")
+      .eq("id", taskId)
+      .single();
 
-  return new Response(JSON.stringify({ status: 'ok' }), { headers: { "Content-Type": "application/json" } })
-})
+    if (taskError || !task) throw new Error("Task not found.");
+    if (!task.agents) throw new Error("Agent associated with task not found.");
+
+    // 2. Set task to 'processing'
+    await supabaseAdmin
+      .from("tasks")
+      .update({ status: "processing", progress: 10 })
+      .eq("id", taskId);
+    await supabaseAdmin
+      .from("agents")
+      .update({ status: "working" })
+      .eq("id", task.agent_id);
+
+    // 3. Initialize OpenAI client
+    const openai = new OpenAI({ apiKey: Deno.env.get("SUPABASE_OPENAI_API_KEY")! });
+
+    // 4. Execute LLM call
+    const completion = await openai.chat.completions.create({
+      model: task.agents.model,
+      messages: [
+        { role: "system", content: task.agents.system_prompt || "You are a helpful AI assistant." },
+        { role: "user", content: task.instruction },
+      ],
+    });
+
+    const result = completion.choices[0].message.content;
+
+    // 5. Update task with the result
+    await supabaseAdmin
+      .from("tasks")
+      .update({ status: "completed", progress: 100, result: { content: result } })
+      .eq("id", taskId);
+
+    // 6. Set agent back to 'idle'
+    await supabaseAdmin
+      .from("agents")
+      .update({ status: "idle" })
+      .eq("id", task.agent_id);
+
+    return new Response(JSON.stringify({ success: true, result }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
+  } catch (error) {
+    console.error(error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+    });
+  }
+});
