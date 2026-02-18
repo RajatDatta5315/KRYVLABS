@@ -1,3 +1,13 @@
-4.  **Add Credentials to `.env`**: Fill in the `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` with the values from your Supabase project.
+5.  **Set Server-side API Key**: In your Supabase dashboard, go to **Project Settings > Edge Functions**. Add a new secret named `SUPABASE_OPENAI_API_KEY` and set its value to your OpenAI API key.
 
-    
+### 3. Database Setup
+
+The database schema is defined in `supabase/schema.sql`.
+
+1.  Go to the **SQL Editor** in your Supabase dashboard.
+2.  Copy the entire content of `supabase/schema.sql` and run it. This will create all the necessary tables, policies, and functions.
+
+### 4. Run the Application
+
+Now you can start the development server:
+
