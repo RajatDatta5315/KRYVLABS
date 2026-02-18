@@ -3,189 +3,205 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRYV LABS | OS-1 Management</title>
+    <title>KRYV LABS | Neural Command Center</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        :root { --accent: #06b6d4; }
-        body { font-family: 'Inter', sans-serif; background: #020202; color: #fff; overflow-x: hidden; }
-        .font-heading { font-family: 'Space Grotesk', sans-serif; }
-        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); }
-        .agent-card:hover { border-color: var(--accent); box-shadow: 0 0 30px rgba(6, 182, 212, 0.1); }
-        .glitch-text { text-shadow: 2px 0 #06b6d4, -2px 0 #ff00c1; animation: glitch 3s infinite; }
-        @keyframes glitch { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
-        .scanline { background: linear-gradient(to bottom, transparent, rgba(6, 182, 212, 0.05) 50%, transparent); height: 100%; width: 100%; position: absolute; pointer-events: none; animation: scan 8s linear infinite; }
-        @keyframes scan { from { transform: translateY(-100%); } to { transform: translateY(100%); } }
+        :root { --kryv-cyan: #00f2ff; --kryv-bg: #030303; }
+        body { background: var(--kryv-bg); color: #fff; font-family: 'Space Grotesk', sans-serif; overflow-x: hidden; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .glass-panel { background: rgba(10, 10, 10, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+        .accent-glow { text-shadow: 0 0 15px rgba(0, 242, 255, 0.5); }
+        .cyber-grid { background-image: linear-gradient(rgba(0, 242, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 242, 255, 0.03) 1px, transparent 1px); background-size: 40px 40px; }
+        input:focus { outline: none; border-color: var(--kryv-cyan); box-shadow: 0 0 10px rgba(0, 242, 255, 0.2); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
     </style>
 </head>
-<body>
+<body class="cyber-grid">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useMemo } = React;
+        const { motion, AnimatePresence } = FramerMotion;
 
-        const StatusBadge = ({ status }) => {
-            const colors = {
-                online: 'bg-emerald-500 shadow-[0_0_10px_#10b981]',
-                offline: 'bg-zinc-600',
-                syncing: 'bg-cyan-500 animate-pulse',
-                error: 'bg-red-500'
-            };
+        const StatusIndicator = ({ status }) => {
+            const colors = { active: 'bg-cyan-400', idle: 'bg-amber-400', training: 'bg-purple-500', offline: 'bg-zinc-600' };
             return (
                 <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${colors[status] || colors.offline}`}></div>
-                    <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-400">{status}</span>
+                    <span className={`status-dot ${colors[status]} shadow-[0_0_8px_currentColor]`}></span>
+                    <span className="mono text-[10px] uppercase tracking-tighter opacity-70">{status}</span>
                 </div>
             );
         };
 
-        const Dashboard = ({ user, onLogout }) => {
+        const SidebarItem = ({ icon, label, active, onClick }) => (
+            <div 
+                onClick={onClick}
+                className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-all border-r-2 ${active ? 'bg-cyan-500/5 border-cyan-500 text-cyan-400' : 'border-transparent text-zinc-500 hover:text-white'}`}
+            >
+                <div className="text-sm font-bold mono uppercase tracking-widest">{label}</div>
+            </div>
+        );
+
+        const App = () => {
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [loading, setLoading] = useState(false);
+            const [activeTab, setActiveTab] = useState('fleet');
             const [agents, setAgents] = useState([
-                { id: 1, name: 'KRYV-V1-ALPHA', status: 'online', load: 42 },
-                { id: 2, name: 'SENTINEL-NODE-0', status: 'syncing', load: 89 },
-                { id: 3, name: 'PHANTOM-CORE', status: 'offline', load: 0 }
+                { id: '1', name: 'KR-UNIT-01', status: 'active', load: 78, battery: 92 },
+                { id: '2', name: 'KR-UNIT-04', status: 'idle', load: 12, battery: 45 },
+                { id: '3', name: 'Z-SENTINEL', status: 'training', load: 95, battery: 88 }
             ]);
 
-            return (
-                <div className="min-h-screen p-6 md:p-12 max-w-7xl mx-auto">
-                    <div className="scanline"></div>
-                    
-                    {/* Header */}
-                    <header className="flex justify-between items-center mb-16 relative">
-                        <div>
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-10 h-10 bg-cyan-500 rounded flex items-center justify-center font-bold text-black">K</div>
-                                <h2 className="font-heading font-bold text-2xl tracking-tighter">KRYV<span className="text-cyan-500">LABS</span></h2>
-                            </div>
-                            <p className="text-zinc-500 font-mono text-sm underline decoration-cyan-500/30">SESSION_ACTIVE: {user.email}</p>
-                        </div>
-                        <button onClick={onLogout} className="px-5 py-2 glass hover:bg-white/5 transition-all text-xs font-mono">DISCONNECT</button>
-                    </header>
+            const handleLogin = (e) => {
+                e.preventDefault();
+                setLoading(true);
+                setTimeout(() => { setIsLoggedIn(true); setLoading(false); }, 1500);
+            };
 
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                        {[
-                            { label: 'ACTIVE_NODES', val: '12', color: 'text-cyan-500' },
-                            { label: 'NEURAL_THROUGHPUT', val: '1.4GB/s', color: 'text-white' },
-                            { label: 'UPTIME', val: '99.9%', color: 'text-emerald-500' },
-                            { label: 'LATENCY', val: '4ms', color: 'text-cyan-500' }
-                        ].map((s, i) => (
-                            <div key={i} className="glass p-6 rounded-xl">
-                                <p className="text-[10px] font-mono text-zinc-500 mb-1">{s.label}</p>
-                                <p className={`text-2xl font-heading font-bold ${s.color}`}>{s.val}</p>
+            if (!isLoggedIn) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center p-6">
+                        <motion.div 
+                            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                            className="glass-panel p-10 rounded-2xl w-full max-w-md"
+                        >
+                            <div className="mb-8 text-center">
+                                <h1 className="text-3xl font-bold tracking-tighter accent-glow">KRYV <span className="font-light">OS-1</span></h1>
+                                <p className="text-zinc-500 text-sm mono">NEURAL ACCESS GATEWAY</p>
                             </div>
-                        ))}
+                            <form onSubmit={handleLogin} className="space-y-6">
+                                <div>
+                                    <label className="block text-[10px] mono text-zinc-500 uppercase mb-2 ml-1">Protocol Identifier</label>
+                                    <input type="text" placeholder="operator_id" className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-lg mono text-sm" />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] mono text-zinc-500 uppercase mb-2 ml-1">Neural Key</label>
+                                    <input type="password" placeholder="••••••••" className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-lg mono text-sm" />
+                                </div>
+                                <button className="w-full bg-cyan-600 hover:bg-cyan-500 text-black font-bold py-4 rounded-lg transition-all flex items-center justify-center gap-2">
+                                    {loading ? 'SYNCHRONIZING...' : 'INITIALIZE ACCESS'}
+                                </button>
+                            </form>
+                        </motion.div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="flex h-screen overflow-hidden">
+                    {/* Sidebar */}
+                    <div className="w-64 glass-panel border-r flex flex-col pt-8">
+                        <div className="px-6 mb-12">
+                            <h2 className="text-xl font-bold accent-glow">KRYV LABS</h2>
+                            <p className="text-[10px] mono text-zinc-500">ROOT_ACCESS: ENABLED</p>
+                        </div>
+                        <nav className="flex-1">
+                            <SidebarItem label="Fleet Overview" active={activeTab === 'fleet'} onClick={() => setActiveTab('fleet')} />
+                            <SidebarItem label="Neural Training" active={activeTab === 'training'} onClick={() => setActiveTab('training')} />
+                            <SidebarItem label="Telemetry" active={activeTab === 'telemetry'} onClick={() => setActiveTab('telemetry')} />
+                            <SidebarItem label="Security" active={activeTab === 'security'} onClick={() => setActiveTab('security')} />
+                        </nav>
+                        <div className="p-6 border-t border-white/5">
+                            <button onClick={() => setIsLoggedIn(false)} className="text-[10px] mono text-zinc-500 hover:text-red-400">DISCONNECT_SESSION</button>
+                        </div>
                     </div>
 
                     {/* Main Content */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div className="lg:col-span-2 space-y-4">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="font-heading font-bold text-xl uppercase tracking-widest">Neural Assets</h3>
-                                <button className="text-xs bg-cyan-500 text-black font-bold px-4 py-2 rounded hover:bg-white transition-all">INITIATE DEPLOYMENT</button>
+                    <main className="flex-1 overflow-y-auto p-10">
+                        <header className="flex justify-between items-end mb-12">
+                            <div>
+                                <h2 className="text-4xl font-bold tracking-tighter">FLEET COMMAND</h2>
+                                <p className="text-zinc-500 mono text-sm italic underline decoration-cyan-500/30">Active Units: {agents.length}</p>
                             </div>
-                            
-                            {agents.map(agent => (
-                                <div key={agent.id} className="glass agent-card p-6 rounded-xl flex justify-between items-center transition-all group">
-                                    <div className="flex gap-6 items-center">
-                                        <div className="w-12 h-12 bg-zinc-900 border border-white/5 rounded-lg flex items-center justify-center">
-                                            <div className={`w-6 h-6 border-2 rounded-sm rotate-45 ${agent.status === 'online' ? 'border-cyan-500' : 'border-zinc-700'}`}></div>
+                            <div className="flex gap-4">
+                                <button className="glass-panel px-6 py-2 rounded-lg text-sm font-bold border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 active:scale-95 transition-all">
+                                    + DEPLOY AGENT
+                                </button>
+                            </div>
+                        </header>
+
+                        {/* Agents Grid */}
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                            {agents.map((agent, i) => (
+                                <motion.div 
+                                    key={agent.id}
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: i * 0.1 }}
+                                    className="glass-panel p-6 rounded-2xl group hover:border-cyan-500/50 transition-all cursor-pointer"
+                                >
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div>
+                                            <h3 className="text-xl font-bold mb-1 group-hover:text-cyan-400 transition-colors uppercase">{agent.name}</h3>
+                                            <StatusIndicator status={agent.status} />
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[10px] mono text-zinc-500">ID: {agent.id}</p>
+                                            <p className="text-[10px] mono text-zinc-500 italic">CORE_V1.4</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-8 mb-4">
+                                        <div>
+                                            <div className="flex justify-between text-[10px] mb-2 uppercase mono text-zinc-400">
+                                                <span>Neural Load</span>
+                                                <span className={agent.load > 90 ? 'text-red-400' : 'text-cyan-400'}>{agent.load}%</span>
+                                            </div>
+                                            <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                                                <motion.div 
+                                                    initial={{ width: 0 }} animate={{ width: `${agent.load}%` }} 
+                                                    className={`h-full ${agent.load > 90 ? 'bg-red-500' : 'bg-cyan-500 shadow-[0_0_10px_#06b6d4]'}`}
+                                                ></motion.div>
+                                            </div>
                                         </div>
                                         <div>
-                                            <h4 className="font-heading font-semibold text-lg">{agent.name}</h4>
-                                            <StatusBadge status={agent.status} />
+                                            <div className="flex justify-between text-[10px] mb-2 uppercase mono text-zinc-400">
+                                                <span>Battery </span>
+                                                <span>{agent.battery}%</span>
+                                            </div>
+                                            <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                                                <motion.div 
+                                                    initial={{ width: 0 }} animate={{ width: `${agent.battery}%` }} 
+                                                    className="h-full bg-emerald-500"
+                                                ></motion.div>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="text-[10px] font-mono text-zinc-500 mb-2">NEURAL_LOAD</p>
-                                        <div className="w-32 h-1 bg-zinc-800 rounded-full overflow-hidden">
-                                            <div className="h-full bg-cyan-500 transition-all duration-1000" style={{width: `${agent.load}%`}}></div>
-                                        </div>
+
+                                    <div className="flex gap-2 pt-4 border-t border-white/5">
+                                        <button className="flex-1 py-2 text-[10px] mono border border-white/5 rounded hover:bg-white/5 transition-colors">TERMINAL</button>
+                                        <button className="flex-1 py-2 text-[10px] mono border border-white/5 rounded hover:bg-white/5 transition-colors">DIAGNOSTICS</button>
+                                        <button className="flex-1 py-2 text-[10px] mono border border-red-500/20 text-red-500/50 hover:bg-red-500/10 transition-colors">RECALL</button>
                                     </div>
-                                </div>
+                                </motion.div>
                             ))}
                         </div>
 
-                        {/* Sidebar / Console */}
-                        <div className="space-y-6">
-                            <div className="glass p-6 rounded-xl border-l-2 border-l-cyan-500">
-                                <h4 className="font-heading font-bold mb-4 flex items-center gap-2">
-                                    <span className="w-2 h-2 bg-cyan-500 rounded-full"></span>
-                                    SYSTEM_LOGS
-                                </h4>
-                                <div className="font-mono text-[11px] space-y-2 text-zinc-400">
-                                    <p><span className="text-zinc-600">[14:22:01]</span> NODE_V1 Authenticated</p>
-                                    <p><span className="text-zinc-600">[14:23:45]</span> Handshake protocol: OK</p>
-                                    <p className="text-cyan-500/80 underline"><span className="text-zinc-600">[14:24:12]</span> Syncing humanoid-meta-04...</p>
-                                </div>
-                            </div>
-                            
-                            <div className="glass p-6 rounded-xl overflow-hidden relative group">
-                                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                <h4 className="font-heading font-bold mb-2">UPGRADE TO PRO</h4>
-                                <p className="text-sm text-zinc-400 mb-4">Unlock multi-humanoid orchestration and low-latency edge processing.</p>
-                                <button className="w-full py-2 bg-white text-black text-xs font-bold rounded hover:bg-cyan-500 transition-colors">UPGRADE CORE</button>
+                        {/* System Log */}
+                        <div className="mt-12 glass-panel p-6 rounded-2xl">
+                            <h3 className="text-sm font-bold mono uppercase mb-4 text-cyan-500">Global Event Stream</h3>
+                            <div className="space-y-2 max-h-48 overflow-y-auto pr-4 custom-scrollbar">
+                                {[
+                                    { time: '14:22:11', msg: 'KR-UNIT-01 Neural handshake optimized.', type: 'info' },
+                                    { time: '14:23:45', msg: 'Z-SENTINEL Internal overheating caution.', type: 'warn' },
+                                    { time: '14:24:02', msg: 'Fleet sync complete. 12/12 nodes active.', type: 'success' },
+                                    { time: '14:25:59', msg: 'Encryption cycle rotated to v2.4 (RSA-4096).', type: 'info' }
+                                ].map((log, i) => (
+                                    <div key={i} className="flex gap-4 text-[11px] mono border-b border-white/5 pb-2">
+                                        <span className="text-zinc-600">{log.time}</span>
+                                        <span className={log.type === 'warn' ? 'text-amber-500' : log.type === 'success' ? 'text-emerald-500' : 'text-zinc-400'}>
+                                            {log.msg}
+                                        </span>
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const Auth = ({ onLogin }) => {
-            const [email, setEmail] = useState('');
-            return (
-                <div className="min-h-screen flex items-center justify-center bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-fixed">
-                    <div className="glass p-12 rounded-3xl w-full max-w-md border-t-2 border-t-cyan-500 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-4 opacity-10 font-bold text-8xl pointer-events-none">K</div>
-                        <h1 className="text-4xl font-heading font-bold mb-2 tracking-tighter">OS-1 <span className="text-cyan-500">LOGIN</span></h1>
-                        <p className="text-zinc-400 text-sm mb-8">Enter authorized credentials to access laboratory systems.</p>
-                        
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-[10px] font-mono text-zinc-500 mb-1 tracking-widest uppercase">Endpoint ID</label>
-                                <input 
-                                    type="email" 
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full bg-white/5 border border-white/10 p-4 rounded-xl focus:outline-none focus:border-cyan-500 transition-colors placeholder:text-zinc-700" 
-                                    placeholder="operator@kryvlabs.io"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-[10px] font-mono text-zinc-500 mb-1 tracking-widest uppercase">Security Key</label>
-                                <input 
-                                    type="password" 
-                                    className="w-full bg-white/5 border border-white/10 p-4 rounded-xl focus:outline-none focus:border-cyan-500 transition-colors" 
-                                    placeholder="••••••••"
-                                />
-                            </div>
-                            <button 
-                                onClick={() => onLogin(email)}
-                                className="w-full py-4 bg-cyan-500 text-black font-bold rounded-xl hover:bg-white transition-all transform hover:scale-[1.02] active:scale-[0.98]"
-                            >
-                                AUTHORIZE SYSTEM ACCESS
-                            </button>
-                        </div>
-                        <p className="mt-8 text-center text-xs text-zinc-600 font-mono">ENCRYPTED END-TO-END | KRYV-OS v2.0.4</p>
-                    </div>
-                </div>
-            );
-        };
-
-        const App = () => {
-            const [user, setUser] = useState(null);
-            
-            return (
-                <div>
-                    {!user ? (
-                        <Auth onLogin={(email) => setUser({ email })} />
-                    ) : (
-                        <Dashboard user={user} onLogout={() => setUser(null)} />
-                    )}
+                    </main>
                 </div>
             );
         };
