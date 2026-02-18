@@ -1,9 +1,3 @@
-### 2. Supabase Setup
-
-This project requires a Supabase backend.
-
-1.  **Create a Supabase Project**: Go to [supabase.com](https://supabase.com) and create a new project.
-2.  **Get API Keys**: In your Supabase project dashboard, go to **Project Settings > API**.
-3.  **Create `.env` file**: Copy the `.env.example` file to a new file named `.env`.
+4.  **Add Credentials to `.env`**: Fill in the `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` with the values from your Supabase project.
 
     
