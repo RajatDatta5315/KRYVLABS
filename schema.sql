@@ -1,29 +1,35 @@
--- Create profiles for users
-create table public.profiles (
-  id uuid references auth.users on delete cascade primary key,
-  updated_at timestamp with time zone,
-  username text unique,
-  full_name text,
-  avatar_url text,
-  api_key text unique default 'sk_' || encode(gen_random_bytes(24), 'hex')
+-- Enable UUID generation
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- PROFILES: Link to Supabase Auth
+CREATE TABLE profiles (
+  id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
+  username TEXT UNIQUE,
+  api_token TEXT UNIQUE DEFAULT 'kr_' || encode(gen_random_bytes(16), 'hex'),
+  tier TEXT DEFAULT 'standard' CHECK (tier IN ('standard', 'enterprise')),
+  last_login TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- AI Agents table
-create table public.agents (
-  id uuid default gen_random_uuid() primary key,
-  user_id uuid references public.profiles(id) on delete cascade not null,
-  name text not null,
-  status text check (status in ('online', 'offline', 'syncing', 'error')) default 'online',
-  neural_load integer default 0,
-  last_ping timestamp with time zone default now(),
-  config jsonb default '{"temp": 0.7, "model": "kryv-alpha-1"}'::jsonb
+-- AGENTS: The humanoid entities
+CREATE TABLE agents (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  owner_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  model_id TEXT DEFAULT 'kryv-core-v1',
+  status TEXT DEFAULT 'idle' CHECK (status IN ('idle', 'active', 'training', 'offline')),
+  neural_load INTEGER DEFAULT 0,
+  battery_level INTEGER DEFAULT 100,
+  location_lat DECIMAL,
+  location_lng DECIMAL,
+  last_heartbeat TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Security Policies
-alter table public.profiles enable row level security;
-alter table public.agents enable row level security;
+-- Real-time RLS Policies
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agents ENABLE ROW LEVEL SECURITY;
 
-create policy "Users can view own profile" on public.profiles for select using (auth.uid() = id);
-create policy "Users can update own profile" on public.profiles for update using (auth.uid() = id);
-create policy "Users can view own agents" on public.agents for select using (auth.uid() = user_id);
-create policy "Users can insert own agents" on public.agents for insert with check (auth.uid() = user_id);
+CREATE POLICY "Users can only view their own agents" ON agents
+  FOR ALL USING (auth.uid() = owner_id);
+
+CREATE POLICY "Users can only view their own profile" ON profiles
+  FOR SELECT USING (auth.uid() = id);
