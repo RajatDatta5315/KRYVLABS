@@ -2,7 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useEffect } from 'react';
 import { Database } from '@/lib/database.types';
-import { CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { CheckCircle2, Clock, Code, XCircle } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 
 type Task = Database['public']['Tables']['tasks']['Row'];
 
@@ -11,7 +12,8 @@ async function fetchTasks(agentId: string) {
         .from('tasks')
         .select('*')
         .eq('agent_id', agentId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(20);
     if (error) throw new Error(error.message);
     return data;
 }
@@ -30,45 +32,49 @@ export const TaskList = ({ agentId }: { agentId: string }) => {
     });
 
     useEffect(() => {
-        const channel = supabase.channel(`tasks-for-${agentId}`)
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'tasks',
-                filter: `agent_id=eq.${agentId}`
-            }, () => {
+        const channel = supabase.channel(`realtime-tasks-for-${agentId}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `agent_id=eq.${agentId}` }, () => {
                 refetch();
             }).subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
+        return () => { supabase.removeChannel(channel); };
     }, [agentId, refetch]);
 
-    if(isLoading) return <div className="text-kryv-text-secondary">Loading tasks...</div>;
-
-    if(!tasks || tasks.length === 0) {
-        return <div className="text-kryv-text-secondary text-sm p-4 text-center bg-kryv-panel-dark rounded-xl">No tasks yet for this agent.</div>
-    }
+    if (isLoading) return <div className="text-kryv-text-secondary text-center p-8">Loading task history...</div>;
+    if (!tasks || tasks.length === 0) return <div className="text-kryv-text-secondary text-sm p-8 text-center bg-kryv-bg-dark rounded-xl">This agent has not performed any tasks yet.</div>
 
     return (
-        <div className="space-y-3 pr-2 overflow-y-auto flex-1">
-            {tasks.map((task: Task) => (
-                <div key={task.id} className="p-4 bg-kryv-panel-dark rounded-lg border border-kryv-border">
-                    <div className="flex justify-between items-start">
-                        <p className="text-sm text-kryv-text-primary flex-1 pr-4">{task.instruction}</p>
-                        <div className="flex items-center gap-2">
-                           {statusIcons[task.status]}
-                           <span className="text-xs text-kryv-text-secondary capitalize">{task.status}</span>
+        <div className="space-y-4">
+            <AnimatePresence>
+                {tasks.map((task: Task) => (
+                    <motion.div
+                        key={task.id}
+                        layout
+                        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.3 }}
+                        className="p-4 bg-kryv-bg-dark rounded-lg border border-kryv-border"
+                    >
+                        <div className="flex justify-between items-start gap-4">
+                            <p className="text-sm font-medium text-kryv-text-primary flex-1">{task.instruction}</p>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                               {statusIcons[task.status]}
+                               <span className="text-xs text-kryv-text-secondary capitalize">{task.status}</span>
+                            </div>
                         </div>
-                    </div>
-                    {task.status === 'completed' && task.result && (
-                        <div className="mt-3 pt-3 border-t border-kryv-border text-sm text-kryv-text-secondary bg-kryv-bg-dark p-3 rounded-md">
-                           <pre className="whitespace-pre-wrap font-sans">{(task.result as any).content}</pre>
-                        </div>
-                    )}
-                </div>
-            ))}
+                        {task.status === 'completed' && task.result && (
+                            <div className="mt-3 pt-3 border-t border-kryv-border text-sm text-kryv-text-secondary bg-black/20 p-4 rounded-md font-mono">
+                               <pre className="whitespace-pre-wrap text-sm">{(task.result as any).content}</pre>
+                            </div>
+                        )}
+                        {task.status === 'failed' && (
+                             <div className="mt-3 pt-3 border-t border-red-500/20 text-sm text-red-400 p-3 rounded-md">
+                               <p>Task failed. Check runtime logs for details.</p>
+                            </div>
+                        )}
+                    </motion.div>
+                ))}
+            </AnimatePresence>
         </div>
     );
 };
