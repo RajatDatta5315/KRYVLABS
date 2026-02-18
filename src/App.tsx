@@ -1,32 +1,36 @@
-import React, { useEffect, useState } from 'react';
-import { supabase } from './lib/supabase';
-import Navigation from './components/Navigation';
-import Hero from './components/Hero';
-import Dashboard from './components/Dashboard';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import DashboardPage from './pages/Dashboard';
+import AuthPage from './pages/Auth';
+import { useAuth } from './hooks/use-auth';
+import { Toaster } from 'sonner';
+import AppLayout from './components/layout/AppLayout';
+import { ThemeProvider } from './contexts/ThemeContext';
 
-export default function App() {
-  const [session, setSession] = useState(null);
+function App() {
+  const { session, loading } = useAuth();
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-kryv-bg-dark flex items-center justify-center">
+        <div className="w-16 h-16 border-4 border-kryv-border border-t-kryv-cyan rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white selection:bg-cyan-500/30">
-      <Navigation session={session} />
-      {!session ? (
-        <Hero />
-      ) : (
-        <Dashboard user={session.user} />
-      )}
-    </div>
+    <ThemeProvider>
+      <Toaster theme="dark" position="bottom-right" />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/auth" element={!session ? <AuthPage /> : <Navigate to="/" />} />
+          <Route path="/" element={session ? <AppLayout /> : <Navigate to="/auth" />}>
+            <Route index element={<DashboardPage />} />
+            {/* Add more protected routes here */}
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }
+
+export default App;
