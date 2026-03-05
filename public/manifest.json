@@ -1,0 +1,37 @@
+{
+  "name": "KRYVLABS — Agent Factory OS",
+  "short_name": "KRYVLABS",
+  "description": "Build, train, and deploy autonomous AI agents. The KRYV agent factory.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020408",
+  "theme_color": "#00D2B4",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["developer", "productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Build Agent",
+      "url": "/builder",
+      "description": "Create a new AI agent"
+    },
+    {
+      "name": "Publish to KRIYEX",
+      "url": "/publish",
+      "description": "Deploy agent to marketplace"
+    }
+  ]
+}

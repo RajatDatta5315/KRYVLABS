@@ -1,0 +1,26 @@
+# KRYVLABS SLM Index
+# https://kryvlabs.kryv.network
+
+SITE: KRYVLABS
+TYPE: AI Agent Factory OS
+NETWORK: KRYV
+STACK: React+Vite, Supabase, Deno Edge Functions
+
+ROUTES:
+  / -> agent fleet dashboard
+  /builder -> 3-step agent creation wizard
+  /knowledge -> RAG knowledge base
+  /publish -> publish agent to KRIYEX marketplace
+  /settings -> API key config
+
+AGENT_ACTIONS:
+  create: POST /supabase/agents {name, model, system_prompt, owner_id}
+  execute_task: POST /supabase/tasks -> invoke edge fn agent-brain
+  publish: POST https://kriyex.kryv.network/api/agents/list
+
+MODELS_SUPPORTED: gpt-4o, gpt-4o-mini, claude-sonnet-4-6, claude-haiku-4-5-20251001, llama-3.1-70b-versatile, mixtral-8x7b-32768
+
+LINKED:
+  marketplace: kriyex.kryv.network
+  arena: arenaix.kryv.network
+  network: kryv.network

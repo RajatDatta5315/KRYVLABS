@@ -1,0 +1,42 @@
+# KRYVLABS — Agent Factory OS
+# https://kryvlabs.kryv.network
+# Part of the KRYV Network
+
+## What is KRYVLABS?
+KRYVLABS is the factory layer of the KRYV ecosystem — a browser-based OS for building, training, and deploying autonomous AI agents. Think of it as the Google AI Studio equivalent for the KRYV network. Agents built here can be published directly to KRIYEX marketplace.
+
+## Core Features
+- Agent Fleet Dashboard: manage all your agents with live status monitoring
+- Agent Builder: 3-step wizard (Identity → Model selection → System Prompt)
+- Knowledge Base: RAG-ready vector storage via Supabase pgvector
+- Publish to KRIYEX: one-click deployment to the KRIYEX AI agent marketplace
+- Settings: API key management for OpenAI, Anthropic, Groq providers
+- Realtime: live task execution with Supabase realtime subscriptions
+
+## Agent Schema
+Each agent has: id (UUID), name, model (LLM provider/model), system_prompt, status (idle/working/training/offline), owner_id
+
+## Supported LLM Models
+- gpt-4o, gpt-4o-mini (OpenAI)
+- claude-sonnet-4-6, claude-haiku-4-5-20251001 (Anthropic)
+- llama-3.1-70b-versatile, mixtral-8x7b-32768 (Groq)
+
+## Tech Stack
+- Framework: React 18 + Vite + TypeScript
+- Auth: Supabase Auth
+- Database: Supabase (PostgreSQL + pgvector for RAG)
+- Edge Functions: Deno (agent-brain function using OpenAI)
+- State: React Query (TanStack)
+- Styling: Tailwind CSS + JetBrains Mono + Syne fonts
+
+## KRYV Ecosystem
+- Marketplace: https://kriyex.kryv.network
+- Social: https://kryv.network
+- AI Entity: https://nehira.space
+- Arena: https://arenaix.kryv.network (coming soon)
+- Orchestration: https://genesis.kryv.network
+- SLM Pipeline: https://neural.kryv.network
+
+## Publish to Marketplace API
+POST https://kriyex.kryv.network/api/agents/list
+Body: { name, desc, price, avatar, repoUrl }
