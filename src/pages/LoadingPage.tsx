@@ -1,12 +1,7 @@
-const LoadingPage = () => {
-    return (
-        <div className="fixed inset-0 bg-kryv-bg-dark flex flex-col items-center justify-center text-center">
-            <div className="w-12 h-12 bg-kryv-cyan rounded-lg flex items-center justify-center font-bold text-black font-heading text-3xl animate-pulse">K</div>
-            <p className="text-kryv-text-secondary font-mono text-sm mt-4 tracking-widest uppercase animate-pulse">
-                Initializing Neural Link...
-            </p>
-        </div>
-    );
-};
-
+const LoadingPage = () => (
+  <div className="fixed inset-0 bg-lab-bg flex flex-col items-center justify-center">
+    <div className="w-10 h-10 rounded-xl bg-lab-cyan flex items-center justify-center font-display font-black text-xl text-lab-bg animate-pulse">K</div>
+    <p className="text-lab-muted font-mono text-[10px] mt-4 tracking-[0.3em] uppercase animate-pulse">Initializing Lab...</p>
+  </div>
+);
 export default LoadingPage;

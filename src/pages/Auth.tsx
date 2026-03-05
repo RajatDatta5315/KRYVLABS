@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { api, setAuth } from '@/lib/api-client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
@@ -14,15 +14,15 @@ const AuthPage = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      if (mode === 'sign_in') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        navigate('/');
-      } else {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        toast.success('Check your email to confirm your account');
-      }
+      const data = mode === 'sign_in'
+        ? await api.signin(email, password)
+        : await api.signup(email, password);
+      setAuth(data.token, data.user);
+      // Store in sessionStorage so page refresh works
+      sessionStorage.setItem('kryv_token', data.token);
+      sessionStorage.setItem('kryv_user', JSON.stringify(data.user));
+      toast.success('Lab access granted');
+      navigate('/');
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -36,32 +36,24 @@ const AuthPage = () => {
         backgroundImage: 'linear-gradient(rgba(0,210,180,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,210,180,0.04) 1px, transparent 1px)',
         backgroundSize: '40px 40px',
       }}>
-
-      {/* Ambient glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-lab-cyan/4 blur-[120px] rounded-full pointer-events-none" />
-
       <div className="w-full max-w-sm relative z-10">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="w-12 h-12 rounded-xl bg-lab-cyan flex items-center justify-center mx-auto mb-4 shadow-lg shadow-lab-cyan/20">
-            <span className="font-display font-black text-xl text-lab-bg">K</span>
+            <img src="/logo.png" alt="KRYVLABS" className="w-full h-full rounded-xl object-contain" />
           </div>
           <h1 className="font-display font-black text-2xl text-white">KRYVLABS</h1>
           <p className="font-mono text-[10px] text-lab-muted mt-1">// agent factory os</p>
         </div>
-
         <div className="lab-panel p-6 space-y-4">
           <div className="flex gap-2">
             {(['sign_in', 'sign_up'] as const).map(m => (
               <button key={m} onClick={() => setMode(m)}
-                className={`flex-1 py-2 rounded-lg font-mono text-xs transition-all ${
-                  mode === m ? 'bg-lab-cyan/10 border border-lab-cyan/30 text-lab-cyan' : 'text-lab-muted hover:text-lab-text border border-transparent'
-                }`}>
+                className={`flex-1 py-2 rounded-lg font-mono text-xs transition-all ${mode === m ? 'bg-lab-cyan/10 border border-lab-cyan/30 text-lab-cyan' : 'text-lab-muted hover:text-lab-text border border-transparent'}`}>
                 {m === 'sign_in' ? 'Sign In' : 'Register'}
               </button>
             ))}
           </div>
-
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
               <label className="font-mono text-[10px] text-lab-muted block mb-1.5">EMAIL</label>
@@ -78,7 +70,6 @@ const AuthPage = () => {
             </button>
           </form>
         </div>
-
         <p className="text-center font-mono text-[10px] text-lab-muted mt-4">
           Part of <a href="https://kryv.network" className="text-lab-cyan hover:underline" target="_blank">KRYV Network</a>
         </p>

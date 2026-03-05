@@ -1,25 +1,32 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Session } from '@supabase/supabase-js';
+import { setAuth, getToken, getUser } from '@/lib/api-client';
 
 export function useAuth() {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-      }
-    );
-
-    return () => subscription.unsubscribe();
+    // Restore session from sessionStorage on page load
+    const token = sessionStorage.getItem('kryv_token');
+    const userStr = sessionStorage.getItem('kryv_user');
+    if (token && userStr) {
+      const user = JSON.parse(userStr);
+      setAuth(token, user);
+      setSession({ user });
+    }
+    setLoading(false);
   }, []);
 
-  return { session, user: session?.user, loading };
+  const signOut = () => {
+    sessionStorage.removeItem('kryv_token');
+    sessionStorage.removeItem('kryv_user');
+    setSession(null);
+  };
+
+  return {
+    session,
+    user: session?.user,
+    loading,
+    signOut,
+  };
 }

@@ -5,7 +5,6 @@ import KnowledgePage from './pages/Knowledge';
 import PublishPage from './pages/Publish';
 import SettingsPage from './pages/Settings';
 import AuthPage from './pages/Auth';
-import ConfigErrorPage from './pages/ConfigErrorPage';
 import LoadingPage from './pages/LoadingPage';
 import { useAuth } from './hooks/use-auth';
 import { Toaster } from 'sonner';
@@ -34,18 +33,11 @@ const PublicRoutes = () => (
 
 function App() {
   const { session, loading } = useAuth();
-  const supabaseConfigured = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
-  if (!supabaseConfigured) return <ConfigErrorPage />;
   if (loading) return <LoadingPage />;
   return (
     <ThemeProvider>
-      <Toaster
-        theme="dark"
-        position="bottom-right"
-        toastOptions={{
-          style: { background: '#070C12', border: '1px solid rgba(0,210,180,0.2)', color: '#C8D8E8', fontFamily: 'JetBrains Mono, monospace', fontSize: '12px' }
-        }}
-      />
+      <Toaster theme="dark" position="bottom-right"
+        toastOptions={{ style: { background: '#070C12', border: '1px solid rgba(0,210,180,0.2)', color: '#C8D8E8', fontFamily: 'JetBrains Mono, monospace', fontSize: '12px' } }} />
       <BrowserRouter>
         {session ? <ProtectedRoutes /> : <PublicRoutes />}
       </BrowserRouter>
