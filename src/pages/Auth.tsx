@@ -1,39 +1,89 @@
+import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Auth } from '@supabase/auth-ui-react';
-import { ThemeSupa } from '@supabase/auth-ui-shared';
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 const AuthPage = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [mode, setMode] = useState<'sign_in' | 'sign_up'>('sign_in');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      if (mode === 'sign_in') {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        navigate('/');
+      } else {
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        toast.success('Check your email to confirm your account');
+      }
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-kryv-bg-dark p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-lab-bg flex items-center justify-center px-4"
+      style={{
+        backgroundImage: 'linear-gradient(rgba(0,210,180,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,210,180,0.04) 1px, transparent 1px)',
+        backgroundSize: '40px 40px',
+      }}>
+
+      {/* Ambient glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-lab-cyan/4 blur-[120px] rounded-full pointer-events-none" />
+
+      <div className="w-full max-w-sm relative z-10">
+        {/* Logo */}
         <div className="text-center mb-8">
-            <h1 className="font-heading text-4xl font-bold">KRYV<span className="text-kryv-cyan">LABS</span></h1>
-            <p className="text-kryv-text-secondary mt-2">AI Orchestration Platform</p>
+          <div className="w-12 h-12 rounded-xl bg-lab-cyan flex items-center justify-center mx-auto mb-4 shadow-lg shadow-lab-cyan/20">
+            <span className="font-display font-black text-xl text-lab-bg">K</span>
+          </div>
+          <h1 className="font-display font-black text-2xl text-white">KRYVLABS</h1>
+          <p className="font-mono text-[10px] text-lab-muted mt-1">// agent factory os</p>
         </div>
-        <Auth
-          supabaseClient={supabase}
-          appearance={{
-            theme: ThemeSupa,
-            variables: {
-              default: {
-                colors: {
-                  brand: 'hsl(188, 100%, 50%)',
-                  brandAccent: 'hsl(188, 100%, 40%)',
-                  defaultButtonBackground: 'hsl(240, 6%, 10%)',
-                  defaultButtonBackgroundHover: 'hsl(240, 5%, 18%)',
-                  inputBackground: 'hsl(240, 6%, 12%)',
-                  inputBorder: 'hsl(240, 5%, 18%)',
-                  inputBorderHover: 'hsl(240, 5%, 30%)',
-                },
-              },
-            },
-          }}
-          providers={['github', 'google']}
-          theme="dark"
-        />
+
+        <div className="lab-panel p-6 space-y-4">
+          <div className="flex gap-2">
+            {(['sign_in', 'sign_up'] as const).map(m => (
+              <button key={m} onClick={() => setMode(m)}
+                className={`flex-1 py-2 rounded-lg font-mono text-xs transition-all ${
+                  mode === m ? 'bg-lab-cyan/10 border border-lab-cyan/30 text-lab-cyan' : 'text-lab-muted hover:text-lab-text border border-transparent'
+                }`}>
+                {m === 'sign_in' ? 'Sign In' : 'Register'}
+              </button>
+            ))}
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div>
+              <label className="font-mono text-[10px] text-lab-muted block mb-1.5">EMAIL</label>
+              <input type="email" className="lab-input" placeholder="you@lab.dev" value={email}
+                onChange={e => setEmail(e.target.value)} required />
+            </div>
+            <div>
+              <label className="font-mono text-[10px] text-lab-muted block mb-1.5">PASSWORD</label>
+              <input type="password" className="lab-input" placeholder="••••••••" value={password}
+                onChange={e => setPassword(e.target.value)} required />
+            </div>
+            <button type="submit" disabled={loading} className="lab-btn-primary w-full py-3 mt-2">
+              {loading ? 'Processing...' : mode === 'sign_in' ? '→ Enter Lab' : '→ Create Account'}
+            </button>
+          </form>
+        </div>
+
+        <p className="text-center font-mono text-[10px] text-lab-muted mt-4">
+          Part of <a href="https://kryv.network" className="text-lab-cyan hover:underline" target="_blank">KRYV Network</a>
+        </p>
       </div>
     </div>
   );
 };
-
 export default AuthPage;

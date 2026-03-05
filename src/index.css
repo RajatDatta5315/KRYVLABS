@@ -1,56 +1,62 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  :root {
-    color-scheme: dark;
-  }
-  body {
-    @apply bg-kryv-bg-dark text-kryv-text-primary overflow-hidden;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
+  :root { color-scheme: dark; }
   
-  /* Custom Scrollbar */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-  ::-webkit-scrollbar-track {
-    @apply bg-transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    @apply bg-kryv-border rounded-full;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-kryv-text-secondary;
+  body {
+    @apply bg-lab-bg text-lab-text;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
   }
 
-  /* Custom Selection */
-  ::selection {
-    @apply bg-kryv-cyan/20 text-kryv-cyan;
+  /* Grid background on root */
+  #root {
+    background-image:
+      linear-gradient(rgba(0,210,180,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,210,180,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    background-position: center;
   }
+
+  ::selection { background: rgba(0,210,180,0.2); color: #00D2B4; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(0,210,180,0.2); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(0,210,180,0.4); }
 }
 
-/* CMDK Command Palette Styling */
-[cmdk-dialog] {
-  @apply bg-kryv-panel-dark border border-kryv-border rounded-lg;
+@layer components {
+  .lab-panel {
+    @apply bg-lab-panel border border-lab-border rounded-xl;
+  }
+  .lab-input {
+    @apply w-full bg-lab-bg border border-lab-border rounded-lg px-3 py-2 text-sm text-lab-text
+           font-mono outline-none focus:border-lab-cyan transition-colors placeholder:text-lab-muted;
+  }
+  .lab-btn-primary {
+    @apply bg-lab-cyan text-lab-bg font-mono font-bold text-xs px-4 py-2 rounded-lg
+           hover:bg-lab-green transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .lab-btn-ghost {
+    @apply border border-lab-border text-lab-muted font-mono text-xs px-4 py-2 rounded-lg
+           hover:border-lab-cyan hover:text-lab-cyan transition-all duration-200;
+  }
+  .status-dot-active  { @apply w-2 h-2 rounded-full bg-lab-green animate-pulse-slow; }
+  .status-dot-idle    { @apply w-2 h-2 rounded-full bg-lab-cyan/60; }
+  .status-dot-working { @apply w-2 h-2 rounded-full bg-lab-amber animate-pulse; }
+  .status-dot-offline { @apply w-2 h-2 rounded-full bg-lab-muted; }
 }
-[cmdk-input] {
-  @apply bg-transparent w-full text-lg text-kryv-text-primary placeholder:text-kryv-text-secondary focus:outline-none px-4 pt-4;
-}
-[cmdk-list] {
-  @apply p-2 max-h-[300px] overflow-auto;
-}
-[cmdk-item] {
-  @apply p-2 rounded-md flex items-center gap-2 cursor-pointer text-kryv-text-secondary;
-}
-[cmdk-item][aria-selected="true"] {
-  @apply bg-kryv-cyan/10 text-kryv-text-primary;
-}
-[cmdk-group-heading] {
-  @apply px-2 py-1 text-xs text-kryv-text-secondary;
-}
+
+/* CMDK */
+[cmdk-dialog] { @apply bg-lab-panel border border-lab-cyan/30 rounded-xl shadow-2xl shadow-lab-cyan/5; }
+[cmdk-input] { @apply bg-transparent w-full text-sm text-lab-text font-mono placeholder:text-lab-muted focus:outline-none px-4 py-3; }
+[cmdk-list] { @apply p-2 max-h-72 overflow-auto; }
+[cmdk-item] { @apply p-2.5 rounded-lg flex items-center gap-3 cursor-pointer text-lab-muted text-xs font-mono; }
+[cmdk-item][aria-selected='true'] { @apply bg-lab-cyan/10 text-lab-cyan; }
+[cmdk-separator] { @apply h-px bg-lab-border my-1; }
