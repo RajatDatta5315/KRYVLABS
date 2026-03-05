@@ -11,20 +11,11 @@ const Header = () => {
   return (
     <header className="h-[52px] border-b border-lab-border bg-lab-panel/80 backdrop-blur-xl flex items-center px-5 justify-between flex-shrink-0 z-40">
       <div className="flex items-center gap-3">
-        {/* Logo: replace /logo.png with your actual logo file in /public/ */}
+        {/* Your logo from /public/logo.png */}
         <img
           src="/logo.png"
           alt="KRYVLABS"
           className="w-7 h-7 rounded-lg object-contain"
-          onError={(e) => {
-            // Fallback to letter K if no logo file found
-            const parent = (e.target as HTMLImageElement).parentElement!;
-            (e.target as HTMLImageElement).style.display = 'none';
-            const fallback = document.createElement('div');
-            fallback.className = 'w-7 h-7 rounded-lg bg-lab-cyan flex items-center justify-center';
-            fallback.innerHTML = '<span style="color:#020408;font-weight:900;font-size:14px;font-family:Syne,sans-serif">K</span>';
-            parent.insertBefore(fallback, parent.firstChild);
-          }}
         />
         <div>
           <span className="font-display font-bold text-sm text-white tracking-tight">KRYVLABS</span>

@@ -5,7 +5,6 @@ export const useAgentEngine = () => {
   const [agents, setAgents] = useState<any[]>([]);
   const [isDeploying, setIsDeploying] = useState(false);
 
-  // 1. Initial Fetch
   useEffect(() => {
     const fetchAgents = async () => {
       const { data } = await supabase.from('agents').select('*').order('created_at', { ascending: false });
@@ -13,12 +12,11 @@ export const useAgentEngine = () => {
     };
     fetchAgents();
 
-    // 2. Real-time Subscription
     const channel = supabase
       .channel('agent-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'agents' }, (payload) => {
         if (payload.eventType === 'INSERT') {
-          setAgents(prev => [payload.new, ...prev]);
+          setAgents(prev => [payload.new as any, ...prev]);
         }
       })
       .subscribe();
@@ -26,11 +24,15 @@ export const useAgentEngine = () => {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  const deployAgent = async (name: string) => {
+  // deployAgent is a legacy helper — owner_id required by schema so this is demo-only
+  const deployAgent = async (name: string, ownerId: string) => {
     setIsDeploying(true);
-    const { data, error } = await supabase.from('agents').insert([
-      { name, status: 'active', neural_load: Math.floor(Math.random() * 40) + 10 }
-    ]);
+    const { data, error } = await supabase.from('agents').insert({
+      name,
+      owner_id: ownerId,
+      status: 'idle' as const,
+      model: 'gpt-4o',
+    });
     setIsDeploying(false);
     return { data, error };
   };

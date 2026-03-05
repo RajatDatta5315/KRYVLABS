@@ -1,31 +1,19 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// api.ts — re-exports supabase client and provides helper actions
+export { supabase } from './supabase';
 
 export const agentActions = {
-  async fetchMyAgents() {
-    const { data, error } = await supabase.from('agents').select('*');
+  async fetchMyAgents(supabaseClient: any) {
+    const { data, error } = await supabaseClient.from('agents').select('*');
     if (error) throw error;
     return data;
   },
-  
-  async updateAgentStatus(id: string, status: string) {
-    const { data, error } = await supabase
+
+  async updateAgentStatus(supabaseClient: any, id: string, status: 'idle' | 'working' | 'training' | 'offline') {
+    const { data, error } = await supabaseClient
       .from('agents')
-      .update({ status, last_heartbeat: new Date() })
+      .update({ status })
       .eq('id', id);
     if (error) throw error;
     return data;
   },
-
-  async deployNewAgent(name: string) {
-    const { data, error } = await supabase
-      .from('agents')
-      .insert([{ name, status: 'idle', neural_load: 0 }]);
-    if (error) throw error;
-    return data;
-  }
 };
