@@ -1,60 +1,24 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
-import { Agent } from "@/pages/Dashboard";
-import { Bot, Check, Clock, Cpu } from "lucide-react";
+import { useEffect, useState } from 'react';
+import { api } from '@/lib/api-client';
+import { Bot, Check, Cpu, Clock } from 'lucide-react';
 
-async function fetchAgents() {
-    const { data, error } = await supabase.from('agents').select('*').order('created_at', { ascending: false });
-    if (error) throw new Error(error.message);
-    return data;
+type Agent = { id: string; name: string; model: string; status: string };
+interface Props { selectedAgent: Agent | null; setSelectedAgent: (a: Agent) => void; }
+
+export default function AgentList({ selectedAgent, setSelectedAgent }: Props) {
+  const [agents, setAgents] = useState<Agent[]>([]);
+  useEffect(() => { api.getAgents().then(setAgents).catch(() => {}); }, []);
+
+  const statusIcon = (s: string) => s === 'working' ? <Cpu className="h-3 w-3 text-lab-amber animate-pulse" /> : s === 'training' ? <Clock className="h-3 w-3 text-amber-500" /> : <Check className="h-3 w-3 text-lab-green" />;
+  return (
+    <div className="space-y-2">
+      {agents.map(a => (
+        <button key={a.id} onClick={() => setSelectedAgent(a)} className={`w-full text-left p-3 rounded-xl border-2 transition-all flex items-center gap-3 ${selectedAgent?.id===a.id?'border-lab-cyan bg-lab-cyan/5':'border-lab-border hover:border-lab-cyan/30'}`}>
+          <div className={`p-2 rounded-lg border ${selectedAgent?.id===a.id?'border-lab-cyan/40 bg-lab-cyan/10':'border-lab-border bg-lab-bg'}`}><Bot className={`h-4 w-4 ${selectedAgent?.id===a.id?'text-lab-cyan':'text-lab-muted'}`} /></div>
+          <div className="flex-1 min-w-0"><p className="font-mono font-bold text-xs text-white truncate">{a.name}</p><p className="font-mono text-[10px] text-lab-muted truncate">{a.model}</p></div>
+          {statusIcon(a.status)}
+        </button>
+      ))}
+    </div>
+  );
 }
-
-interface AgentListProps {
-  selectedAgent: Agent | null;
-  setSelectedAgent: (agent: Agent) => void;
-}
-
-const statusIconMap = {
-    idle: <Check className="h-3 w-3 text-green-500" />,
-    working: <Cpu className="h-3 w-3 text-kryv-cyan animate-pulse" />,
-    training: <Clock className="h-3 w-3 text-amber-500" />,
-    offline: <div className="h-3 w-3 bg-kryv-text-secondary rounded-full opacity-50"></div>,
-};
-
-export const AgentList = ({ selectedAgent, setSelectedAgent }: AgentListProps) => {
-    const { data: agents, isLoading, isError } = useQuery({ queryKey: ['agents'], queryFn: fetchAgents });
-
-    if (isLoading) return (
-        <div className="space-y-3">
-            {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-20 rounded-lg bg-kryv-panel-dark animate-pulse"></div>
-            ))}
-        </div>
-    );
-    if (isError) return <div className="p-4 bg-red-900/50 border border-red-500 rounded-lg text-white">Failed to load agents.</div>;
-    if (!agents || agents.length === 0) return <p className="text-kryv-text-secondary text-sm text-center mt-8">No agents created yet.</p>;
-
-    return (
-        <div className="space-y-3">
-            {agents.map((agent) => (
-                <button
-                    key={agent.id}
-                    onClick={() => setSelectedAgent(agent)}
-                    className={`w-full text-left p-4 rounded-xl transition-all flex items-start gap-4 border-2  ${selectedAgent?.id === agent.id ? 'bg-kryv-panel-dark border-kryv-cyan shadow-lg shadow-kryv-cyan/10' : 'bg-transparent border-kryv-border hover:border-kryv-border hover:bg-kryv-panel-dark'}`}
-                >
-                    <div className={`mt-1 p-2 bg-kryv-bg-dark rounded-md border border-kryv-border ${selectedAgent?.id === agent.id ? 'border-kryv-cyan/50': 'border-kryv-border'}`}>
-                        <Bot className={`h-5 w-5 ${selectedAgent?.id === agent.id ? 'text-kryv-cyan': 'text-kryv-text-secondary'}`} />
-                    </div>
-                    <div className="flex-1">
-                        <p className="font-bold text-kryv-text-primary">{agent.name}</p>
-                        <p className="text-xs text-kryv-text-secondary truncate">{agent.system_prompt}</p>
-                        <div className="flex items-center gap-2 text-xs text-kryv-text-secondary mt-2">
-                           {statusIconMap[agent.status]}
-                           <span className="capitalize">{agent.status}</span>
-                        </div>
-                    </div>
-                </button>
-            ))}
-        </div>
-    );
-};

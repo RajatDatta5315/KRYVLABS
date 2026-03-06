@@ -1,88 +1,42 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { api } from '@/lib/api-client';
 import { toast } from 'sonner';
-import { useAuth } from '@/hooks/use-auth';
 import { Bot, Plus, X } from 'lucide-react';
 
-async function createAgent(name: string, model: string, system_prompt: string, owner_id: string) {
-    const { data, error } = await supabase.from('agents').insert({ name, model, system_prompt, owner_id }).select();
-    if (error) throw new Error(error.message);
-    return data;
-}
+export const AgentCreator = ({ onCreated }: { onCreated?: () => void }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [systemPrompt, setSystemPrompt] = useState('You are a helpful AI assistant.');
+  const [saving, setSaving] = useState(false);
 
-export const AgentCreator = () => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [name, setName] = useState('');
-    const [systemPrompt, setSystemPrompt] = useState('You are a helpful AI assistant.');
-    const { user } = useAuth();
-    const queryClient = useQueryClient();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await api.createAgent({ name, model: 'gpt-4o', system_prompt: systemPrompt });
+      toast.success(`Agent "${name}" created`);
+      setIsOpen(false); setName(''); setSystemPrompt('You are a helpful AI assistant.');
+      onCreated?.();
+    } catch (e: any) { toast.error(e.message); }
+    setSaving(false);
+  };
 
-    const mutation = useMutation({
-        mutationFn: () => {
-            if (!user) throw new Error("User not authenticated.");
-            return createAgent(name, 'gpt-4o', systemPrompt, user.id);
-        },
-        onSuccess: () => {
-            toast.success(`Agent "${name}" created successfully.`);
-            queryClient.invalidateQueries({ queryKey: ['agents'] });
-            setIsOpen(false);
-            setName('');
-            setSystemPrompt('You are a helpful AI assistant.');
-        },
-        onError: (error) => {
-            toast.error(`Failed to create agent: ${error.message}`);
-        },
-    });
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        mutation.mutate();
-    };
-
-    return (
-        <>
-            <button onClick={() => setIsOpen(true)} className="p-2 rounded-md hover:bg-kryv-panel-dark transition-colors">
-                <Plus className="h-5 w-5" />
-            </button>
-
-            {isOpen && (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-                    <div className="bg-kryv-panel-dark border border-kryv-border rounded-xl w-full max-w-lg p-6 relative">
-                        <button onClick={() => setIsOpen(false)} className="absolute top-4 right-4 p-1 rounded-full hover:bg-kryv-border">
-                            <X className="h-4 w-4" />
-                        </button>
-                        <h2 className="font-heading text-xl font-medium mb-6">Create New Agent</h2>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label className="text-sm text-kryv-text-secondary mb-1 block">Agent Name</label>
-                                <input
-                                    type="text"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    placeholder="e.g., Data Analyst Pro"
-                                    className="w-full px-3 py-2 rounded-md bg-kryv-bg-dark border border-kryv-border focus:border-kryv-cyan outline-none"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="text-sm text-kryv-text-secondary mb-1 block">System Prompt</label>
-                                <textarea
-                                    value={systemPrompt}
-                                    onChange={(e) => setSystemPrompt(e.target.value)}
-                                    rows={5}
-                                    className="w-full px-3 py-2 rounded-md bg-kryv-bg-dark border border-kryv-border focus:border-kryv-cyan outline-none"
-                                />
-                            </div>
-                            <div className="flex justify-end pt-4">
-                                <button type="submit" disabled={mutation.isPending} className="px-6 py-2 bg-kryv-cyan text-black font-bold rounded-md disabled:opacity-50 transition-colors">
-                                    {mutation.isPending ? "Creating..." : "Create Agent"}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-        </>
-    );
+  return (
+    <>
+      <button onClick={() => setIsOpen(true)} className="p-2 rounded-md hover:bg-lab-panel transition-colors"><Plus className="h-5 w-5" /></button>
+      {isOpen && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="lab-panel w-full max-w-lg p-6 relative">
+            <button onClick={() => setIsOpen(false)} className="absolute top-4 right-4 p-1.5 rounded-lg text-lab-muted hover:text-white hover:bg-lab-glow transition-all"><X className="h-4 w-4" /></button>
+            <p className="font-mono text-[10px] text-lab-cyan uppercase tracking-widest mb-4">// create_agent</p>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div><label className="font-mono text-[10px] text-lab-muted block mb-1.5">NAME</label><input className="lab-input" value={name} onChange={e=>setName(e.target.value)} required placeholder="Agent name" /></div>
+              <div><label className="font-mono text-[10px] text-lab-muted block mb-1.5">SYSTEM PROMPT</label><textarea className="lab-input h-24 resize-none" value={systemPrompt} onChange={e=>setSystemPrompt(e.target.value)} rows={4} /></div>
+              <button type="submit" disabled={saving} className="lab-btn-primary w-full py-3">{saving?'Creating...':'⚡ Create Agent'}</button>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
+  );
 };

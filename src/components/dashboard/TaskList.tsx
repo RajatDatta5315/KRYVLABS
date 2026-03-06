@@ -1,80 +1,45 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import { useEffect } from 'react';
-import { Database } from '@/lib/database.types';
-import { CheckCircle2, Clock, Code, XCircle } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { api } from '@/lib/api-client';
+import { CheckCircle2, Clock, XCircle, Loader } from 'lucide-react';
 
-type Task = Database['public']['Tables']['tasks']['Row'];
+type Task = { id: string; instruction: string; status: string; result?: string; created_at: string };
 
-async function fetchTasks(agentId: string) {
-    const { data, error } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('agent_id', agentId)
-        .order('created_at', { ascending: false })
-        .limit(20);
-    if (error) throw new Error(error.message);
-    return data;
-}
+export default function TaskList({ agentId }: { agentId: string }) {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
 
-const statusIcons = {
-    pending: <Clock className="h-4 w-4 text-amber-500" />,
-    processing: <div className="h-4 w-4 border-2 border-kryv-text-secondary border-t-kryv-cyan rounded-full animate-spin"></div>,
-    completed: <CheckCircle2 className="h-4 w-4 text-green-500" />,
-    failed: <XCircle className="h-4 w-4 text-red-500" />,
-};
+  useEffect(() => {
+    if (!agentId) return;
+    const load = async () => { setLoading(true); setTasks(await api.getTasks(agentId).catch(() => [])); setLoading(false); };
+    load();
+    const t = setInterval(load, 3000);
+    return () => clearInterval(t);
+  }, [agentId]);
 
-export const TaskList = ({ agentId }: { agentId: string }) => {
-    const { data: tasks, isLoading, refetch } = useQuery({
-        queryKey: ['tasks', agentId],
-        queryFn: () => fetchTasks(agentId),
-    });
+  if (loading) return <div className="flex justify-center py-8"><Loader className="h-5 w-5 text-lab-cyan animate-spin" /></div>;
+  if (!tasks.length) return <p className="text-lab-muted text-xs font-mono text-center py-8">No tasks yet</p>;
 
-    useEffect(() => {
-        const channel = supabase.channel(`realtime-tasks-for-${agentId}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `agent_id=eq.${agentId}` }, () => {
-                refetch();
-            }).subscribe();
-        return () => { supabase.removeChannel(channel); };
-    }, [agentId, refetch]);
-
-    if (isLoading) return <div className="text-kryv-text-secondary text-center p-8">Loading task history...</div>;
-    if (!tasks || tasks.length === 0) return <div className="text-kryv-text-secondary text-sm p-8 text-center bg-kryv-bg-dark rounded-xl">This agent has not performed any tasks yet.</div>
-
-    return (
-        <div className="space-y-4">
-            <AnimatePresence>
-                {tasks.map((task: Task) => (
-                    <motion.div
-                        key={task.id}
-                        layout
-                        initial={{ opacity: 0, y: 20, scale: 0.98 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        transition={{ duration: 0.3 }}
-                        className="p-4 bg-kryv-bg-dark rounded-lg border border-kryv-border"
-                    >
-                        <div className="flex justify-between items-start gap-4">
-                            <p className="text-sm font-medium text-kryv-text-primary flex-1">{task.instruction}</p>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                               {statusIcons[task.status]}
-                               <span className="text-xs text-kryv-text-secondary capitalize">{task.status}</span>
-                            </div>
-                        </div>
-                        {task.status === 'completed' && task.result && (
-                            <div className="mt-3 pt-3 border-t border-kryv-border text-sm text-kryv-text-secondary bg-black/20 p-4 rounded-md font-mono">
-                               <pre className="whitespace-pre-wrap text-sm">{(task.result as any).content}</pre>
-                            </div>
-                        )}
-                        {task.status === 'failed' && (
-                             <div className="mt-3 pt-3 border-t border-red-500/20 text-sm text-red-400 p-3 rounded-md">
-                               <p>Task failed. Check runtime logs for details.</p>
-                            </div>
-                        )}
-                    </motion.div>
-                ))}
-            </AnimatePresence>
+  return (
+    <div className="space-y-3">
+      {tasks.map(t => (
+        <div key={t.id} className="p-4 bg-lab-bg rounded-lg border border-lab-border">
+          <div className="flex justify-between items-start gap-4 mb-2">
+            <p className="text-xs font-medium text-white flex-1 font-mono">{t.instruction}</p>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {t.status==='completed'&&<CheckCircle2 className="h-3.5 w-3.5 text-lab-green" />}
+              {t.status==='failed'&&<XCircle className="h-3.5 w-3.5 text-red-500" />}
+              {t.status==='processing'&&<Loader className="h-3.5 w-3.5 text-lab-cyan animate-spin" />}
+              {t.status==='pending'&&<Clock className="h-3.5 w-3.5 text-lab-muted" />}
+              <span className="text-[10px] text-lab-muted font-mono capitalize">{t.status}</span>
+            </div>
+          </div>
+          {t.status==='completed'&&t.result&&(
+            <pre className="text-[11px] text-lab-muted font-mono whitespace-pre-wrap leading-relaxed border-t border-lab-border pt-2 mt-2">
+              {(() => { try { return JSON.parse(t.result)?.content || t.result; } catch { return t.result; } })()}
+            </pre>
+          )}
         </div>
-    );
-};
+      ))}
+    </div>
+  );
+}

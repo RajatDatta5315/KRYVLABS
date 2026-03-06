@@ -1,22 +1,9 @@
+// Legacy hook — uses api-client internally
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-
+import { api } from '@/lib/api-client';
 export const useAgents = () => {
   const [agents, setAgents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchAgents = async () => {
-      const { data, error } = await supabase
-        .from('agents')
-        .select('*');
-      
-      if (!error) setAgents(data);
-      setLoading(false);
-    };
-
-    fetchAgents();
-  }, []);
-
+  useEffect(() => { api.getAgents().then(setAgents).catch(() => {}).finally(() => setLoading(false)); }, []);
   return { agents, loading };
 };

@@ -1,14 +1,11 @@
-import { createClient } from '@supabase/supabase-js'
-import { Database } from './database.types'
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? ''
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY ?? ''
-
-// Safe client — won't throw on missing env vars (ConfigErrorPage catches it in App.tsx)
-export const supabase = createClient<Database>(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-key',
-  {
-    auth: { persistSession: supabaseUrl !== '' },
-  }
-)
+// STUB — Supabase has been replaced with Cloudflare D1 Worker (src/lib/api-client.ts)
+// This file exists only so old imports don't break the build.
+// All actual data operations use api-client.ts
+export const supabase = {
+  from: () => ({ select: () => ({ eq: () => ({ order: () => ({ data: [], error: null }) }) }), insert: () => ({ error: null }), delete: () => ({ eq: () => ({ error: null }) }), update: () => ({ eq: () => ({ error: null }) }) }),
+  auth: { getUser: async () => ({ data: { user: null } }), signOut: async () => {}, onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }), getSession: async () => ({ data: { session: null } }) },
+  storage: { from: () => ({ upload: async () => ({ error: new Error('Use D1 Worker') }), getPublicUrl: () => ({ data: { publicUrl: '' } }) }) },
+  functions: { invoke: async () => ({ data: null, error: new Error('Use D1 Worker') }) },
+  channel: () => ({ on: () => ({ subscribe: () => {} }) }),
+  removeChannel: () => {},
+};

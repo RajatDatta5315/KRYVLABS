@@ -3,12 +3,10 @@ main = "index.js"
 compatibility_date = "2024-01-01"
 node_compat = true
 
-# D1 Database binding — create with: npx wrangler d1 create kryvlabs-db
 [[d1_databases]]
 binding = "DB"
 database_name = "kryvlabs-db"
-database_id = "REPLACE_WITH_YOUR_D1_ID"
+database_id = "ff4cdf24-63d6-4b13-96af-4bf49688edeb"
 
 [vars]
 KRIYEX_URL = "https://kriyex.kryv.network"
-OPENAI_API_KEY = ""  # Set via: npx wrangler secret put OPENAI_API_KEY
